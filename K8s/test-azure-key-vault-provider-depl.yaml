@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-azure-key-vault-provider-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-azure-key-vault-provider
+  template:
+    metadata:
+      labels:
+        app: test-azure-key-vault-provider
+    spec:
+      containers:
+      - name: test-azure-key-vault-provider
+        image: s1scottd/test-azure-key-vault-provider:latest
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+      volumes:
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "test-azure-key-vault-provider-spc"
+          nodePublishSecretRef:
+            name: secrets-store-creds
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-azure-key-vault-provider-clusterip-serv
+spec:
+  type: ClusterIP
+  selector:
+    app: test-azure-key-vault-provider
+  ports:
+    - name: test-azure-key-vault-provider
+      protocol: TCP
+      port: 80
+      targetPort: 80
